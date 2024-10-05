@@ -8,7 +8,6 @@ on:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     steps:
@@ -20,7 +19,7 @@ jobs:
       with:
         path: |
           .git/modules  # Cache Git module data for submodules
-          lib/          # Cache your submodule directories if they are in 'lib'
+          lib          # Cache your submodule directories if they are in 'lib'
           espressif/idf:release-v5.0 # ESP IDF
         key: ${{ runner.os }}-submodules-${{ hashFiles('.gitmodules') }}
         restore-keys: |
