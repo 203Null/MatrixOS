@@ -12,19 +12,25 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    - name: Checkout Repo
+        uses: actions/checkout@v3
+        
     - name: Cache Git modules
       uses: actions/cache@v4.1.0
       with:
         path: |
           .git/modules  # Cache Git module data for submodules
           lib/          # Cache your submodule directories if they are in 'lib'
-        key: ${{ runner.os }}-git-modules-${{ hashFiles('.gitmodules') }}
+        key: ${{ runner.os }}-submodules-${{ hashFiles('.gitmodules') }}
         restore-keys: |
-          ${{ runner.os }}-git-modules-
-    - name: Checkout repository without submodules
-      uses: actions/checkout@v2
-      with:
-        submodules: false
+          ${{ runner.os }}-submodules-
+          
+   - name: Update git submodules
+        if: steps.cache-submodule.outputs.cache-hit != 'true'
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+        
     - name: Initialize and update submodules if not cached
       run: |
         if [ ! -d ".git/modules" ]; then
@@ -33,6 +39,7 @@ jobs:
         else
           echo "Submodules are cached, skipping initialization."
         fi
+        
     - name: Set up Python 3.10
       uses: actions/setup-python@v3
       with:
