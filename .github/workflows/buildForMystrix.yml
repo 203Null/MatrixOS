@@ -20,7 +20,7 @@ jobs:
         path: |
           .git/modules  # Cache Git module data for submodules
           lib          # Cache your submodule directories if they are in 'lib'
-          espressif/idf:release-v5.0 # ESP IDF
+          espressif/idf:release-v5.1 # ESP IDF
         key: ${{ runner.os }}-submodules-${{ hashFiles('.gitmodules') }}
         restore-keys: |
           ${{ runner.os }}-submodules-
@@ -39,7 +39,7 @@ jobs:
     - name: esp-idf setup
       uses: espressif/esp-idf-ci-action@v1
       with:
-        esp_idf_version: v5.0.6
+        esp_idf_version: release-v5.1
         path: '/'
         target: esp32-s3
         command: make DEVICE=Mystrix fullclean build-nightly uf2
