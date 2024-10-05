@@ -27,11 +27,11 @@ jobs:
         path: '/'
         command: make DEVICE=Mystrix build-nighty uf2
     - name: Get the short commit hash
-        id: get_commit_hash
-        run: echo "COMMIT_HASH=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+      id: get_commit_hash
+      run: echo "COMMIT_HASH=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
     - name: Get the current date
-        id: get_date
-        run: echo "CURRENT_DATE=$(date +'%Y-%-m-%-d')" >> $GITHUB_ENV
+      id: get_date
+      run: echo "CURRENT_DATE=$(date +'%Y-%-m-%-d')" >> $GITHUB_ENV
     - name: Rename file using date and commit hash
       run: |
         OLD_FILENAME="build/Mystrix/MatrixOS-Mystrix.ext"
