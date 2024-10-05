@@ -12,18 +12,27 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout repo
+    - name: Cache Git modules
+      uses: actions/cache@v4.1.0
+      with:
+        path: |
+          .git/modules  # Cache Git module data for submodules
+          lib/          # Cache your submodule directories if they are in 'lib'
+        key: ${{ runner.os }}-git-modules-${{ hashFiles('.gitmodules') }}
+        restore-keys: |
+          ${{ runner.os }}-git-modules-
+    - name: Checkout repository without submodules
       uses: actions/checkout@v2
       with:
-        submodules: 'recursive'
-    - name: Remove unwanted submodules
+        submodules: false
+    - name: Initialize and update submodules if not cached
       run: |
-        git submodule deinit -f -- lib/CMSIS_5
-        git submodule deinit -f -- lib/FreeRTOS-Kernal
-        rm -rf .git/modules/lib/CMSIS_5
-        rm -rf .git/modules/lib/FreeRTOS-Kernal
-    - name: Initialize and update remaining submodules recursively
-      run: git submodule update --init --recursive
+        if [ ! -d ".git/modules" ]; then
+          echo "Submodules not cached, initializing..."
+          git submodule update --init --recursive
+        else
+          echo "Submodules are cached, skipping initialization."
+        fi
     - name: Set up Python 3.10
       uses: actions/setup-python@v3
       with:
