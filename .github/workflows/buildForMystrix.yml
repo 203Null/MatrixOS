@@ -32,18 +32,39 @@ jobs:
       with:
         submodules: recursive
         
-    - name: Initialize and update submodules if not cached
-      run: |
-        if [ ! -d ".git/modules" ]; then
-          echo "Submodules not cached, initializing..."
-          git submodule update --init --recursive
-        else
-          echo "Submodules are cached, skipping initialization."
-        fi
-        
     - name: Set up Python 3.10
       uses: actions/setup-python@v3
       with:
         python-version: '3.10'
+
+    - name: esp-idf setup
+      uses: espressif/esp-idf-ci-action@v1
+      with:
+        esp_idf_version: release-v5.0
+        path: '/'
+        target: esp32-s3
+        command: make DEVICE=Mystrix fullclean build-nightly uf2
+        
+    - name: Get the short commit hash
+      id: get_commit_hash
+      run: echo "COMMIT_HASH=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+      
+    - name: Get the current date
+      id: get_date
+      run: echo "CURRENT_DATE=$(date +'%Y-%-m-%-d')" >> $GITHUB_ENV
+      
+    - name: Rename file using date and commit hash
+      run: |
+        OLD_FILENAME="build/Mystrix/MatrixOS-Mystrix.ext"
+        NEW_FILENAME="build/Mystrix/MatrixOS-Mystrix-nightly-${{ env.CURRENT_DATE }}-${{ env.COMMIT_HASH }}.uf2"
+        mv "$OLD_FILENAME" "$NEW_FILENAME"
+        echo "Renamed $OLD_FILENAME to $NEW_FILENAME"
+          # Upload the artifact to the workflow run
+          
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: bild  # Name of the artifact
+        path: ${{ env.NEW_FILENAME }}
         
     
