@@ -39,7 +39,7 @@ jobs:
     - name: esp-idf setup
       uses: espressif/esp-idf-ci-action@v1
       with:
-        esp_idf_version: release-v5.0
+        esp_idf_version: v5.0.6
         path: '/'
         target: esp32-s3
         command: make DEVICE=Mystrix fullclean build-nightly uf2
