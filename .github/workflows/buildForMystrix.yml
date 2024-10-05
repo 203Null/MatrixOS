@@ -1,0 +1,40 @@
+name: Build for Mystrix 
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v2
+      with:
+        submodules: 'recursive'
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v3
+      with:
+        python-version: '3.10'
+    - name: esp-idf setup
+      uses: espressif/esp-idf-ci-action@v1
+      with:
+        esp_idf_version: release-v5.0
+        path: '/'
+        command: make DEVICE=Mystrix build-nighty uf2
+    - name: Get the short commit hash
+        id: get_commit_hash
+        run: echo "COMMIT_HASH=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+    - name: Get the current date
+        id: get_date
+        run: echo "CURRENT_DATE=$(date +'%Y-%-m-%-d')" >> $GITHUB_ENV
+    - name: Rename file using date and commit hash
+      run: |
+        OLD_FILENAME="build/Mystrix/MatrixOS-Mystrix.ext"
+        NEW_FILENAME="build/Mystrix/MatrixOS-Mystrix-nightly-${{ env.CURRENT_DATE }}-${{ env.COMMIT_HASH }}.uf2"
+        mv "$OLD_FILENAME" "$NEW_FILENAME"
+        echo "Renamed $OLD_FILENAME to $NEW_FILENAME"
