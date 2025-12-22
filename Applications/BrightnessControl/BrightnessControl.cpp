@@ -1,5 +1,6 @@
 #include "BrightnessControl.h"
 #include "UI4pxFloat.h"
+#include <limits>
 
 #define GLOBAL_BRIGHTNESS_COLOR Color(0x00FF00)
 #define PARTITION_BRIGHTNESS_COLOR Color(0x9800FF)
@@ -17,16 +18,16 @@ void BrightnessControl::Start() {
   // Brightness Control
   threshold = Device::LED::brightness_level[sizeof(Device::LED::brightness_level) / sizeof(Device::LED::brightness_level[0]) - 1]; //Get the last element
 #ifndef FINE_LED_BRIGHTNESS
-  map = Device::LED::brightness_level;
-  map_length = sizeof(Device::LED::brightness_level) / sizeof(Device::LED::brightness_level[0]);
+  brightness_map = Device::LED::brightness_level;
+  brightness_map_length = sizeof(Device::LED::brightness_level) / sizeof(Device::LED::brightness_level[0]);
 #else
-  map = Device::LED::brightness_fine_level;
-  map_length = sizeof(Device::LED::brightness_fine_level) / sizeof(Device::LED::brightness_fine_level[0]);
+  brightness_map = Device::LED::brightness_fine_level;
+  brightness_map_length = sizeof(Device::LED::brightness_fine_level) / sizeof(Device::LED::brightness_fine_level[0]);
 #endif
 
   
   // Main Brightness Selector
-  Dimension brightnessSelectorDimension = Dimension(8, map_length / 8 + bool(map_length % 8));
+  Dimension brightnessSelectorDimension = Dimension(8, brightness_map_length / 8 + bool(brightness_map_length % 8));
 
   float multiplier = (float)threshold / 100;
   int32_t displayValue = ((float)MatrixOS::UserVar::brightness / multiplier);
@@ -34,11 +35,11 @@ void BrightnessControl::Start() {
   UISelector brightnessSelector;
   brightnessSelector.SetName("Brightness Selector");
   brightnessSelector.SetDimension(brightnessSelectorDimension);
-  brightnessSelector.SetCount(map_length);
+  brightnessSelector.SetCount(brightness_map_length);
   brightnessSelector.SetLitMode(UISelectorLitMode::LIT_ALWAYS);
-  brightnessSelector.SetIndividualColorFunc([&](uint16_t index) -> Color { return (map[index] > threshold ? Color(0xFF0000) : Color::White).DimIfNot(map[index] <= MatrixOS::UserVar::brightness.value); });
+  brightnessSelector.SetIndividualColorFunc([&](uint16_t index) -> Color { return (brightness_map[index] > threshold ? Color(0xFF0000) : Color::White).DimIfNot(brightness_map[index] <= MatrixOS::UserVar::brightness.value); });
   brightnessSelector.OnChange([&](uint8_t value) -> void {
-    uint8_t brightness = map[value];
+    uint8_t brightness = brightness_map[value];
     MatrixOS::LED::SetBrightness(brightness);
     displayValue = brightness / multiplier;
   });

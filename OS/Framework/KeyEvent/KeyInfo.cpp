@@ -196,7 +196,7 @@ Fract16 KeyInfo::Force() const {
 }
 
 Fract16 KeyInfo::Value(uint8_t index) const {
-  return (index < KEY_INFO_VALUE_COUNT) ? values[index] : 0;
+  return (index < KEY_INFO_VALUE_COUNT) ? values[index] : Fract16(0);
 }
 
 // UpdateRaw method - directly update a value without state machine processing

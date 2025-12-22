@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Framework.h"
-#include "FatFS/ff.h"
 
 // Seek mode enum
 enum SeekMode : int {
@@ -9,6 +8,9 @@ enum SeekMode : int {
   FROM_CURRENT = 1, // From current position
   FROM_END = 2      // From end of file
 };
+
+#if DEVICE_STORAGE == 1
+#include "FatFS/ff.h"
 
 // File class wrapper around FatFS FIL
 class File
