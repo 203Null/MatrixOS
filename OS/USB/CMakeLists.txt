@@ -1,55 +1,71 @@
 file(GLOB_RECURSE USB_HEADERS "*.h")
 
+# TinyUSB location (used for include paths even in stub builds)
+set(TINYUSB_DIR ${CMAKE_SOURCE_DIR}/Library/tinyusb/)
+
+# Default to TinyUSB when device does not specify.
+if(NOT DEFINED DEVICE_TINYUSB)
+    set(DEVICE_TINYUSB 1)
+endif()
+
 # USB source files
 set(USB_SOURCES
     USB.cpp
     HID.cpp
     MIDI.cpp
     CDC.cpp
-    TinyUSB/usb_desc_default.cpp
-    TinyUSB/usb_descriptors.cpp
 )
 
-# Conditionally add MSC sources if device has storage
-if(DEVICE_STORAGE)
+if(DEVICE_TINYUSB)
     list(APPEND USB_SOURCES
-        MSC.cpp
-        TinyUSB/usb_desc_msc.cpp
+        TinyUSB/usb_desc_default.cpp
+        TinyUSB/usb_descriptors.cpp
     )
-endif()
 
-set(TINYUSB_DIR ${CMAKE_SOURCE_DIR}/Library/tinyusb/)
+    # Conditionally add MSC sources if device has storage
+    if(DEVICE_STORAGE)
+        list(APPEND USB_SOURCES
+            MSC.cpp
+            TinyUSB/usb_desc_msc.cpp
+        )
+    endif()
 
-# TINYUSB_SOURCES
-set(TINYUSB_SOURCES
-    ${TINYUSB_DIR}/src/tusb.c
-    ${TINYUSB_DIR}/src/common/tusb_fifo.c
-    ${TINYUSB_DIR}/src/device/usbd.c
-    ${TINYUSB_DIR}/src/device/usbd_control.c
-    ${TINYUSB_DIR}/src/class/audio/audio_device.c
-    ${TINYUSB_DIR}/src/class/cdc/cdc_device.c
-    ${TINYUSB_DIR}/src/class/dfu/dfu_device.c
-    ${TINYUSB_DIR}/src/class/dfu/dfu_rt_device.c
-    ${TINYUSB_DIR}/src/class/hid/hid_device.c
-    ${TINYUSB_DIR}/src/class/midi/midi_device.c
-    ${TINYUSB_DIR}/src/class/net/ecm_rndis_device.c
-    ${TINYUSB_DIR}/src/class/net/ncm_device.c
-    ${TINYUSB_DIR}/src/class/usbtmc/usbtmc_device.c
-    ${TINYUSB_DIR}/src/class/video/video_device.c
-    ${TINYUSB_DIR}/src/class/vendor/vendor_device.c
-)
-
-# Only include MSC device class if device has storage
-if(DEVICE_STORAGE)
-    list(APPEND TINYUSB_SOURCES ${TINYUSB_DIR}/src/class/msc/msc_device.c)
-endif()
-
-# if(TINYUSB_MCU_OPT STREQUAL "ESP32S3" OR TINYUSB_MCU_OPT STREQUAL "ESP32S2")
-    list(APPEND TINYUSB_SOURCES
-        "${CMAKE_SOURCE_DIR}/Library/tinyusb/src/portable/synopsys/dwc2/dcd_dwc2.c"
-        "${CMAKE_SOURCE_DIR}/Library/tinyusb/src/portable/synopsys/dwc2/dwc2_common.c"
+    # TINYUSB_SOURCES
+    set(TINYUSB_SOURCES
+        ${TINYUSB_DIR}/src/tusb.c
+        ${TINYUSB_DIR}/src/common/tusb_fifo.c
+        ${TINYUSB_DIR}/src/device/usbd.c
+        ${TINYUSB_DIR}/src/device/usbd_control.c
+        ${TINYUSB_DIR}/src/class/audio/audio_device.c
+        ${TINYUSB_DIR}/src/class/cdc/cdc_device.c
+        ${TINYUSB_DIR}/src/class/dfu/dfu_device.c
+        ${TINYUSB_DIR}/src/class/dfu/dfu_rt_device.c
+        ${TINYUSB_DIR}/src/class/hid/hid_device.c
+        ${TINYUSB_DIR}/src/class/midi/midi_device.c
+        ${TINYUSB_DIR}/src/class/net/ecm_rndis_device.c
+        ${TINYUSB_DIR}/src/class/net/ncm_device.c
+        ${TINYUSB_DIR}/src/class/usbtmc/usbtmc_device.c
+        ${TINYUSB_DIR}/src/class/video/video_device.c
+        ${TINYUSB_DIR}/src/class/vendor/vendor_device.c
     )
-# endif()
+
+    # Only include MSC device class if device has storage
+    if(DEVICE_STORAGE)
+        list(APPEND TINYUSB_SOURCES ${TINYUSB_DIR}/src/class/msc/msc_device.c)
+    endif()
+
+    # if(TINYUSB_MCU_OPT STREQUAL "ESP32S3" OR TINYUSB_MCU_OPT STREQUAL "ESP32S2")
+        list(APPEND TINYUSB_SOURCES
+            "${CMAKE_SOURCE_DIR}/Library/tinyusb/src/portable/synopsys/dwc2/dcd_dwc2.c"
+            "${CMAKE_SOURCE_DIR}/Library/tinyusb/src/portable/synopsys/dwc2/dwc2_common.c"
+        )
+    # endif()
+else()
+    list(APPEND USB_SOURCES
+        TinyUSB/tusb_stub.cpp
+    )
+    set(TINYUSB_SOURCES "")
+endif()
 
 set(PRINTF_DIR ${CMAKE_SOURCE_DIR}/Library/printf/)
 
@@ -77,6 +93,10 @@ target_include_directories(MatrixOSUSB PUBLIC
 # )
 
 target_link_libraries(MatrixOSUSB PUBLIC MatrixOSInterface)
+
+if(NOT DEVICE_TINYUSB)
+    target_compile_definitions(MatrixOSUSB PUBLIC MATRIXOS_TINYUSB_STUB)
+endif()
 
 # Apply device-specific TinyUSB compile options if provided
 if(DEFINED DEVICE_TINYUSB_COMPILE_OPTIONS)

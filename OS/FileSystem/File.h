@@ -43,3 +43,31 @@ public:
   bool _Open(const string& path, const string& mode);
   FIL* _GetHandle() { return &file_handle; }
 };
+
+#else
+
+class File
+{
+public:
+  File() {}
+  ~File() {}
+
+  string Name() { return string(); }
+  bool Available() { return false; }
+  bool Close() { return false; }
+  bool Flush() { return false; }
+  int Peek() { return -1; }
+  size_t Position() { return 0; }
+  void Print(const string& data) { (void)data; }
+  void Println(const string& data) { (void)data; }
+  bool Seek(size_t position, SeekMode whence = FROM_START) { (void)position; (void)whence; return false; }
+  size_t Size() { return 0; }
+  size_t Read(void* buffer, size_t length) { (void)buffer; (void)length; return 0; }
+  size_t Write(const void* buffer, size_t length) { (void)buffer; (void)length; return 0; }
+  bool IsDirectory() { return false; }
+
+  bool _Open(const string& path, const string& mode) { (void)path; (void)mode; return false; }
+  void* _GetHandle() { return nullptr; }
+};
+
+#endif

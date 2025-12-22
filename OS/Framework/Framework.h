@@ -18,6 +18,7 @@
 //Helper Classes 
 #include "Timer.h" 
 #include "Utilts.h"
+#include "MathConstants.h"
 #include "Hash.h"
 #include "ColorEffects.h"
 

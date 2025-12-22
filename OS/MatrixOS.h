@@ -265,11 +265,9 @@ namespace MatrixOS
   //   }
 }
 
-#if DEVICE_STORAGE == 1
-    // Complete File API with FileSystem operations
-    #include "FileSystem/File.h"
-    #include "FileSystem/FileSystem.h"
-#endif
+// Complete File API with FileSystem operations (stubbed when storage is disabled)
+#include "FileSystem/File.h"
+#include "FileSystem/FileSystem.h"
 
 
 // ui/UIUtilities.h have more callable UI related function

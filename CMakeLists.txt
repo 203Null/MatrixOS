@@ -99,11 +99,21 @@ if(NOT EXISTS ${FAMILY_PATH}/Config.cmake)
 endif()
 include(${FAMILY_PATH}/Config.cmake)
 
+# Default optional feature flags
+if(NOT DEFINED DEVICE_TINYUSB)
+    set(DEVICE_TINYUSB 1)
+endif()
+
 # Pass device feature flags as compile definitions to all targets
 add_compile_definitions(
     DEVICE_STORAGE=${DEVICE_STORAGE}
     DEVICE_BATTERY=${DEVICE_BATTERY}
+    DEVICE_TINYUSB=${DEVICE_TINYUSB}
 )
+
+if(NOT DEVICE_TINYUSB)
+    add_compile_definitions(MATRIXOS_TINYUSB_STUB)
+endif()
 
 # Set debug flags globally for all targets before adding subdirectories
 if(MODE STREQUAL "DEVELOPMENT" OR MODE STREQUAL "UNDEFINED")
@@ -111,6 +121,14 @@ if(MODE STREQUAL "DEVELOPMENT" OR MODE STREQUAL "UNDEFINED")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g3 -Og")
     message(STATUS "Building with debug symbols: -g3 -Og")
 endif()
+
+add_library(cb0r STATIC
+    ${CMAKE_SOURCE_DIR}/Library/cb0r/src/cb0r.c
+)
+
+target_include_directories(cb0r PUBLIC
+    ${CMAKE_SOURCE_DIR}/Library/cb0r/include
+)
 
 add_subdirectory(${FAMILY_PATH})
 add_subdirectory(Devices)

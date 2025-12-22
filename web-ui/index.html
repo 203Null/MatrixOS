@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>web-ui</title>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script>
+      window.Module = window.Module || {}
+      window.MatrixOSRuntimeReady = new Promise((resolve) => {
+        const previous = window.Module.onRuntimeInitialized
+        window.Module.onRuntimeInitialized = () => {
+          if (typeof previous === 'function') {
+            previous()
+          }
+          window.Module.runtimeReady = true
+          resolve()
+        }
+        window.Module.locateFile = (path) => `/${path}`
+      })
+    </script>
+    <script src="/MatrixOSHost.js"></script>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

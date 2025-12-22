@@ -13,8 +13,13 @@ if(DEVICE_STORAGE)
         FatFS/ffsystem.c
     )
 else()
-    set(FILE_HEADERS "")
-    set(FILE_SOURCES "")
+    set(FILE_HEADERS
+        File.h
+        FileSystem.h
+    )
+    set(FILE_SOURCES
+        FileSystemStub.cpp
+    )
 endif()
 
 add_library(MatrixOSFile
