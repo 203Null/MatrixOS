@@ -54,6 +54,8 @@
   let lastColors = Array(64).fill('')
   let underglowEls = Array(32).fill(null)
   let lastUnderglowColors = Array(32).fill('')
+  let wasmMissing = false
+  let wasmMissingLogged = false
   let activePanel = null
   let consoleMessages = []
   let restoreConsole = null
@@ -121,6 +123,60 @@
       return 24 + x
     }
     return 0
+  }
+
+  const setWasmMissing = (message) => {
+    wasmMissing = true
+    status = message
+    if (!wasmMissingLogged) {
+      console.error(message)
+      wasmMissingLogged = true
+    }
+  }
+
+  const isHtmlResponse = (response) => {
+    const contentType = response.headers.get('content-type') || ''
+    return contentType.includes('text/html')
+  }
+
+  const checkWasmAvailability = async () => {
+    try {
+      const response = await fetch('/MatrixOSHost.wasm', {
+        method: 'HEAD',
+        cache: 'no-store'
+      })
+      if (!response.ok && response.status === 404) {
+        setWasmMissing('Matrix OS Image Missing')
+        return false
+      }
+      if (response.ok && isHtmlResponse(response)) {
+        setWasmMissing('Matrix OS Image Missing')
+        return false
+      }
+      if (response.ok) {
+        wasmMissing = false
+      }
+      return response.ok
+    } catch (error) {
+      return false
+    }
+  }
+
+  const hookModuleAbort = () => {
+    const previousAbort = moduleRef?.onAbort
+    if (moduleRef) {
+      moduleRef.onAbort = (what) => {
+        if (typeof previousAbort === 'function') {
+          previousAbort(what)
+        }
+        setWasmMissing('Matrix OS Image Missing')
+      }
+    }
+    return () => {
+      if (moduleRef) {
+        moduleRef.onAbort = previousAbort
+      }
+    }
   }
 
   const normalizeLog = (raw) => {
@@ -330,8 +386,16 @@
         cache: 'no-store'
       })
       if (!response.ok) {
+        if (response.status === 404) {
+          setWasmMissing('MatrixOS wasm missing.')
+        }
         return
       }
+      if (isHtmlResponse(response)) {
+        setWasmMissing('Matrix OS Image Missing')
+        return
+      }
+      wasmMissing = false
       const signature = getWasmSignature(response)
       if (!signature) {
         return
@@ -477,12 +541,17 @@
   }
 
   onMount(() => {
+    checkWasmAvailability()
+
     moduleRef = window.Module ?? null
     if (!moduleRef) {
-      status = 'MatrixOS wasm not loaded.'
+      if (!wasmMissing) {
+        status = 'MatrixOS wasm not loaded.'
+      }
       return () => {}
     }
 
+    const restoreAbort = hookModuleAbort()
     restoreConsole = hookModuleLogging()
 
     try {
@@ -496,6 +565,10 @@
     reloadTimer = window.setInterval(checkWasmUpdate, 2000)
 
     const start = () => {
+      if (wasmMissing) {
+        setTimeout(start, 250)
+        return
+      }
       if (!moduleRef.runtimeReady && !moduleRef.calledRun) {
         setTimeout(start, 50)
         return
@@ -527,6 +600,9 @@
       }
       if (reloadTimer) {
         clearInterval(reloadTimer)
+      }
+      if (restoreAbort) {
+        restoreAbort()
       }
       if (restoreConsole) {
         restoreConsole()
@@ -564,7 +640,7 @@
 
   <section class="app-main" class:panel-open={!!activePanel}>
     <div class="app-stage glass">
-      <div class="visualizer-shell">
+      <div class="visualizer-shell" class:status-active={!moduleReady}>
         <div class="lp">
           <div class="lp-underglow" aria-hidden="true">
             <div class="lp-underglow-row">
@@ -640,6 +716,11 @@
             on:pointerleave={endFnPointer}
           ></div>
         </div>
+        {#if !moduleReady}
+          <div class="visualizer-overlay" aria-live="polite">
+            <div class="status-card" class:status-error={wasmMissing}>{status}</div>
+          </div>
+        {/if}
       </div>
     </div>
 
@@ -790,6 +871,3 @@
     </nav>
   </footer>
 </main>
-{#if !moduleReady}
-  <div class="lp-status-bar" aria-live="polite">{status}</div>
-{/if}

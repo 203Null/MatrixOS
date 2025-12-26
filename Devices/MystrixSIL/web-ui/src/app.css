@@ -449,6 +449,45 @@ body {
   width: 100%;
   max-width: 720px;
   margin: 0 auto;
+  position: relative;
+}
+
+.visualizer-shell.status-active .lp {
+  filter: blur(6px) saturate(0.85);
+}
+
+.visualizer-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 1.6rem;
+  z-index: 5;
+}
+
+.status-card {
+  padding: 0.75rem 1.4rem;
+  border-radius: 14px;
+  background: rgba(14, 14, 18, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #e6e6ea;
+  font-size: 1rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  box-shadow:
+    0 12px 30px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.status-card.status-error {
+  border-color: rgba(255, 107, 107, 0.55);
+  color: #ffd2d2;
+  background: rgba(36, 16, 18, 0.92);
+  box-shadow:
+    0 12px 30px rgba(255, 107, 107, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
 .app-footer {
