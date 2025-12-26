@@ -7,8 +7,7 @@ target_include_directories(MatrixOSAPPInterface PUBLIC
 )
 
 target_link_libraries(MatrixOSAPPInterface PUBLIC
-    MatrixOSInterface
-    cb0r
+    MatrixOSInterface    
 )
 
 # Global list to store registered applications

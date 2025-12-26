@@ -122,14 +122,6 @@ if(MODE STREQUAL "DEVELOPMENT" OR MODE STREQUAL "UNDEFINED")
     message(STATUS "Building with debug symbols: -g3 -Og")
 endif()
 
-add_library(cb0r STATIC
-    ${CMAKE_SOURCE_DIR}/Library/cb0r/src/cb0r.c
-)
-
-target_include_directories(cb0r PUBLIC
-    ${CMAKE_SOURCE_DIR}/Library/cb0r/include
-)
-
 add_subdirectory(${FAMILY_PATH})
 add_subdirectory(Devices)
 add_subdirectory(OS)
