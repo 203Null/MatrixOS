@@ -1,13 +1,13 @@
 <script>
-  import { onMount, onDestroy } from 'svelte'
-  import { fade } from 'svelte/transition'
+  import { onMount } from 'svelte'
   import {
     Settings,
     ArrowsHorizontal,
     Restart,
     Terminal,
     LogoDiscord,
-    Help
+    Help,
+    Music
   } from 'carbon-icons-svelte'
 
   const fallbackSize = 8
@@ -111,7 +111,17 @@
     return { text, color }
   }
 
-  const pushConsoleMessage = (level, args) => {
+  const isMatrixOSLog = (text) => {
+    if (!text) {
+      return false
+    }
+    if (text.startsWith('[MystrixSIL]')) {
+      return true
+    }
+    return /^[DIWEV]\s*\(\d+\)/.test(text)
+  }
+
+  const pushConsoleMessage = (level, args, source = 'console') => {
     const toCleanString = (arg) => {
       if (arg === null || arg === undefined) {
         return String(arg)
@@ -128,6 +138,10 @@
 
     const raw = args.map(toCleanString).join(' ')
     const { text, color } = normalizeLog(raw)
+
+    if (source !== 'matrixos' && !isMatrixOSLog(text)) {
+      return
+    }
 
     // Suppress noisy worker/pthread failures we don't want to show in-panel
     const suppressed =
@@ -167,47 +181,21 @@
     }
   }
 
-  const tapConsole = () => {
-    const original = {
-      log: console.log,
-      warn: console.warn,
-      error: console.error,
-      info: console.info
-    }
-
-    console.log = (...args) => {
-      original.log(...args)
-      pushConsoleMessage('log', args)
-    }
-    console.warn = (...args) => {
-      original.warn(...args)
-      pushConsoleMessage('warn', args)
-    }
-    console.error = (...args) => {
-      original.error(...args)
-      pushConsoleMessage('error', args)
-    }
-    console.info = (...args) => {
-      original.info(...args)
-      pushConsoleMessage('info', args)
-    }
-
-    return () => {
-      console.log = original.log
-      console.warn = original.warn
-      console.error = original.error
-      console.info = original.info
-    }
-  }
-
   const hookModuleLogging = () => {
-    if (!moduleRef) {
-      return
+    window.MatrixOSLogDispatch = (level, args) => {
+      pushConsoleMessage(level, args, 'matrixos')
     }
-    const forwardLog = (...args) => console.log(...args)
-    const forwardErr = (...args) => console.error(...args)
-    moduleRef.print = forwardLog
-    moduleRef.printErr = forwardErr
+    if (window.MatrixOSLogBuffer && Array.isArray(window.MatrixOSLogBuffer)) {
+      window.MatrixOSLogBuffer.forEach((entry) => {
+        if (entry && entry.level && entry.args) {
+          pushConsoleMessage(entry.level, entry.args, 'matrixos')
+        }
+      })
+      window.MatrixOSLogBuffer.length = 0
+    }
+    return () => {
+      window.MatrixOSLogDispatch = null
+    }
   }
 
   const renderFrame = () => {
@@ -445,12 +433,11 @@
       return () => {}
     }
 
-    restoreConsole = tapConsole()
-    hookModuleLogging()
+    restoreConsole = hookModuleLogging()
 
     try {
       const stored = window.localStorage.getItem(consolePrefKey)
-      if (stored === 'console' || stored === 'settings' || stored === 'connection') {
+      if (stored === 'console' || stored === 'settings' || stored === 'connection' || stored === 'version' || stored === 'midi') {
         activePanel = stored
       }
     } catch (error) {}
@@ -504,13 +491,21 @@
 <main class="app-shell">
   <header class="app-header glass">
     <div class="brand">
-      <div class="brand-mark" aria-hidden="true"></div>
+      <picture class="brand-logo">
+        <source srcset="/203dark.svg" media="(prefers-color-scheme: dark)" />
+        <img src="/203.svg" alt="203 Systems" />
+      </picture>
       <div class="brand-text">
         <div class="brand-title">Matrix OS Simulator</div>
       </div>
     </div>
     <div class="header-actions">
-      <button class="app-btn" type="button">
+      <button
+        class="app-btn"
+        type="button"
+        class:active-btn={activePanel === 'version'}
+        on:click={() => (activePanel = activePanel === 'version' ? null : 'version')}
+      >
         <span class="btn-label">Matrix OS {versionLabel}</span>
       </button>
     </div>
@@ -664,6 +659,28 @@
               </div>
             </div>
           </div>
+        {:else if activePanel === 'version'}
+          <div class="panel-content">
+            <div class="console-header">
+              <div class="console-title console-title-large">OS Version</div>
+            </div>
+            <div class="console-body-wrapper empty-panel-wrapper">
+              <div class="console-body settings-panel empty-panel">
+                <div class="console-empty empty-center">Under construction.</div>
+              </div>
+            </div>
+          </div>
+        {:else if activePanel === 'midi'}
+          <div class="panel-content">
+            <div class="console-header">
+              <div class="console-title console-title-large">MIDI Monitor</div>
+            </div>
+            <div class="console-body-wrapper empty-panel-wrapper">
+              <div class="console-body settings-panel empty-panel">
+                <div class="console-empty empty-center">Under construction.</div>
+              </div>
+            </div>
+          </div>
         {/if}
       </aside>
     {/if}
@@ -701,6 +718,15 @@
       >
         <Terminal size={18} class="btn-icon" />
         <span class="btn-label">Console Log</span>
+      </button>
+      <button
+        class="app-btn"
+        type="button"
+        class:active-btn={activePanel === 'midi'}
+        on:click={() => (activePanel = activePanel === 'midi' ? null : 'midi')}
+      >
+        <Music size={18} class="btn-icon" />
+        <span class="btn-label">MIDI Monitor</span>
       </button>
       <a class="app-btn" href="https://discord.gg/rRVCBHHPfw" target="_blank" rel="noreferrer noopener">
         <LogoDiscord size={18} class="btn-icon" />

@@ -66,7 +66,7 @@ namespace Device
 
   void Reboot()
   {
-    std::fprintf(stderr, "[MystrixSIL] Reboot requested\n");
+    std::fprintf(stderr, "System Rebooted\n");
     std::fflush(stderr);
   }
 
