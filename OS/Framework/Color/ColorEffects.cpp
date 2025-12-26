@@ -12,7 +12,7 @@ namespace ColorEffects
 
     uint8_t Breath(uint16_t period, int32_t offset)
     {
-       float brightness = (cos(2 * MatrixOS::Math::kPi * (MatrixOS::SYS::Millis() - offset + period / 2) / (period)) + 1) / 2 * 255;
+       float brightness = (cos(2 * M_PI * (MatrixOS::SYS::Millis() - offset + period / 2) / (period)) + 1) / 2 * 255;
        return (uint8_t)brightness;
     }
 
@@ -23,7 +23,7 @@ namespace ColorEffects
 
     uint8_t BreathLowBound(uint8_t lowBound, uint16_t period, int32_t offset)
     {
-       float brightness = ((cos(2 * MatrixOS::Math::kPi * (MatrixOS::SYS::Millis() - offset + period / 2) / (period)) + 1) / 2) * (255 - lowBound) + lowBound;
+       float brightness = ((cos(2 * M_PI * (MatrixOS::SYS::Millis() - offset + period / 2) / (period)) + 1) / 2) * (255 - lowBound) + lowBound;
        return (uint8_t)brightness;
     }
 

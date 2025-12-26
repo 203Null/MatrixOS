@@ -1456,8 +1456,8 @@ uint8_t Sequence::StepProgressBreath(uint8_t lowBound)
 
     // Convert to breathing effect using cosine wave
     // Map 0-65535 to 0-2π for full cosine cycle
-    float phase = (float)progress * 2.0f * MatrixOS::Math::kPi;
-    float brightness = ((std::cos(phase - MatrixOS::Math::kPi) + 1.0f) / 2.0f) * (255.0f - lowBound) + lowBound;
+    float phase = (float)progress * 2.0f * M_PI;
+    float brightness = ((std::cos(phase - M_PI) + 1.0f) / 2.0f) * (255.0f - lowBound) + lowBound;
 
     return (uint8_t)brightness;
 }
@@ -1483,8 +1483,8 @@ uint8_t Sequence::QuarterNoteProgressBreath(uint8_t lowBound)
 
     // Convert to breathing effect using cosine wave
     // Map 0-65535 to 0-2π for full cosine cycle
-    float phase = (float)progress * 2.0f * MatrixOS::Math::kPi;
-    float brightness = ((std::cos(phase - MatrixOS::Math::kPi) + 1.0f) / 2.0f) * (255.0f - lowBound) + lowBound;
+    float phase = (float)progress * 2.0f * M_PI;
+    float brightness = ((std::cos(phase - M_PI) + 1.0f) / 2.0f) * (255.0f - lowBound) + lowBound;
 
     return (uint8_t)brightness;
 }

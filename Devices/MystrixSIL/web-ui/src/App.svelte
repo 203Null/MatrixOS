@@ -12,6 +12,7 @@
 
   const fallbackSize = 8
   const offColor = 'rgb(160, 160, 160)'
+  const underglowOffColor = 'rgba(0, 0, 0, 0)'
   const edgeSlots = Array.from({ length: 8 })
   const baseOverlay = 72
   const glowSoftAlpha = 0.35
@@ -51,6 +52,8 @@
   let reloadTimer = 0
   let keypadEls = Array(64).fill(null)
   let lastColors = Array(64).fill('')
+  let underglowEls = Array(32).fill(null)
+  let lastUnderglowColors = Array(32).fill('')
   let activePanel = null
   let consoleMessages = []
   let restoreConsole = null
@@ -81,6 +84,14 @@
     return { r: rr, g: gg, b: bb, isOff }
   }
 
+  const applyUnderglowColor = (r, g, b, w) => {
+    const rr = clamp(r + w)
+    const gg = clamp(g + w)
+    const bb = clamp(b + w)
+    const isOff = rr === 0 && gg === 0 && bb === 0
+    return { r: rr, g: gg, b: bb, isOff }
+  }
+
   const getCornerClip = (x, y) => {
     switch (x + y * 10) {
       case 43:
@@ -94,6 +105,22 @@
       default:
         return ''
     }
+  }
+
+  const getUnderglowIndex = (x, y) => {
+    if (x === 8 && y >= 0 && y < 8) {
+      return 7 - y
+    }
+    if (y === -1 && x >= 0 && x < 8) {
+      return 8 + (7 - x)
+    }
+    if (x === -1 && y >= 0 && y < 8) {
+      return 16 + y
+    }
+    if (y === 8 && x >= 0 && x < 8) {
+      return 24 + x
+    }
+    return 0
   }
 
   const normalizeLog = (raw) => {
@@ -226,9 +253,10 @@
     }
 
     const data = heap.subarray(ptr, ptr + byteLength)
-    const count = Math.min(width * height, keypadEls.length)
+    const totalCount = Math.floor(byteLength / 4)
+    const gridCount = Math.min(width * height, keypadEls.length, totalCount)
 
-    for (let i = 0; i < count; i += 1) {
+    for (let i = 0; i < gridCount; i += 1) {
       const base = i * 4
       const { r, g, b, isOff } = applyLedColor(
         data[base],
@@ -265,6 +293,28 @@
           `drop-shadow(0 0 6px ${glowHard}) drop-shadow(0 0 14px ${glowSoft})`
         )
       }
+    }
+
+    const underglowBase = 64
+    const underglowCount = Math.min(Math.max(totalCount - underglowBase, 0), underglowEls.length)
+    for (let i = 0; i < underglowCount; i += 1) {
+      const base = (underglowBase + i) * 4
+      const { r, g, b, isOff } = applyUnderglowColor(
+        data[base],
+        data[base + 1],
+        data[base + 2],
+        data[base + 3]
+      )
+      const color = isOff ? underglowOffColor : `rgb(${r}, ${g}, ${b})`
+      if (color === lastUnderglowColors[i]) {
+        continue
+      }
+      lastUnderglowColors[i] = color
+      const el = underglowEls[i]
+      if (!el) {
+        continue
+      }
+      el.style.backgroundColor = color
     }
   }
 
@@ -459,6 +509,7 @@
       moduleReady = true
       status = 'Live framebuffer streaming.'
       lastColors.fill('')
+      lastUnderglowColors.fill('')
       if (moduleRef._MatrixOS_Wasm_GetVersionString && moduleRef.UTF8ToString) {
         const ptr = moduleRef._MatrixOS_Wasm_GetVersionString()
         if (ptr) {
@@ -519,7 +570,7 @@
             <div class="lp-underglow-row">
               {#each edgeSlots as _, x}
                 <div class="lp-underglow-led-parent">
-                  <div class="lp-underglow-led"></div>
+                  <div class="lp-underglow-led" bind:this={underglowEls[getUnderglowIndex(x, -1)]}></div>
                 </div>
               {/each}
             </div>
@@ -528,7 +579,7 @@
               <div class="lp-underglow-column">
                 {#each edgeSlots as _, y}
                   <div class="lp-underglow-led-parent">
-                    <div class="lp-underglow-led"></div>
+                    <div class="lp-underglow-led" bind:this={underglowEls[getUnderglowIndex(-1, y)]}></div>
                   </div>
                 {/each}
               </div>
@@ -536,7 +587,7 @@
               <div class="lp-underglow-column">
                 {#each edgeSlots as _, y}
                   <div class="lp-underglow-led-parent">
-                    <div class="lp-underglow-led"></div>
+                    <div class="lp-underglow-led" bind:this={underglowEls[getUnderglowIndex(8, y)]}></div>
                   </div>
                 {/each}
               </div>
@@ -545,7 +596,7 @@
             <div class="lp-underglow-row">
               {#each edgeSlots as _, x}
                 <div class="lp-underglow-led-parent">
-                  <div class="lp-underglow-led"></div>
+                  <div class="lp-underglow-led" bind:this={underglowEls[getUnderglowIndex(x, 8)]}></div>
                 </div>
               {/each}
             </div>

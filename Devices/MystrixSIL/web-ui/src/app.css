@@ -705,7 +705,7 @@ body {
   left: -3%;
   height: 106%;
   width: 106%;
-  filter: blur(20px) saturate(180%) brightness(170%);
+  filter: blur(20px) saturate(200%) brightness(200%);
   z-index: 1;
   pointer-events: none;
 }
@@ -735,9 +735,16 @@ body {
   padding-bottom: 0.5%;
 }
 
-.lp-underglow-led-parent {
+.lp-underglow-row .lp-underglow-led-parent {
   width: 100%;
-  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.lp-underglow-column .lp-underglow-led-parent {
+  height: 20%;
+  width: 100%;
   display: flex;
   justify-content: center;
   align-items: center;

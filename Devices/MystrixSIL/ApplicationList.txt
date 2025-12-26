@@ -37,7 +37,7 @@ Reversi
 # [System]Python
 
 # Boot animation
-# {FAMILY_PATH}/Applications/MystrixBoot
+{FAMILY_PATH}/Applications/MystrixBoot
 
 # Example application template
 #git:https://github.com/203-Systems/Matrix-OS-APP-Template.git@master

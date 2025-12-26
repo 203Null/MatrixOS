@@ -124,7 +124,7 @@ void ForceCalibration::HighCalibration() {
           // Calculate brightness based on current time and period
           uint32_t time = MatrixOS::SYS::Millis() - event_time_stamp;
           uint32_t period = 500; // Set the desired period in milliseconds
-          float brightness = (1 + sin(2 * MatrixOS::Math::kPi * time / period)) / 2 * 255;
+          float brightness = (1 + sin(2 * M_PI * time / period)) / 2 * 255;
 
           // Apply brightness to the color
           Color color = Color::White.Scale((uint8_t)brightness);

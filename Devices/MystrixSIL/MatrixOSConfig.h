@@ -8,7 +8,7 @@
 #define Y_SIZE 8
 
 #define OS_SHELL APPID("203 Systems", "Shell")
-#define DEFAULT_BOOTANIMATION 0
+#define DEFAULT_BOOTANIMATION APPID("203 Systems", "Mystrix Boot")
 
 namespace Device
 {
@@ -28,7 +28,7 @@ namespace Device
     #define MAX_LED_LAYERS 8
     const inline uint16_t fps = 60;
 
-    inline uint16_t count = 64;
+    inline uint16_t count = 64 + 32;
     inline uint8_t brightness_level[8] = {8, 22, 39, 60, 84, 110, 138, 169};
     #define FINE_LED_BRIGHTNESS
     inline uint8_t brightness_fine_level[16] = {
@@ -38,6 +38,7 @@ namespace Device
 
     inline vector<LEDPartition> partitions = {
         {"Grid", 1.0f, 0, 64},
+        {"Underglow", 4.0f, 64, 32},
     };
   }
 }

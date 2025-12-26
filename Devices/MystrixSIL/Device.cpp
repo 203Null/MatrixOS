@@ -72,8 +72,6 @@ namespace Device
 
   void Bootloader()
   {
-    std::fprintf(stderr, "[MystrixSIL] Bootloader requested\n");
-    std::fflush(stderr);
     Reboot();
   }
 
@@ -159,16 +157,40 @@ namespace Device
       {
         return UINT16_MAX;
       }
-      if (xy.x < 0 || xy.y < 0 || xy.x >= X_SIZE || xy.y >= Y_SIZE)
+      if (xy.x >= 0 && xy.x < X_SIZE && xy.y >= 0 && xy.y < Y_SIZE)
       {
-        return UINT16_MAX;
+        return static_cast<uint16_t>(xy.y * X_SIZE + xy.x);
       }
-      return static_cast<uint16_t>(xy.y * X_SIZE + xy.x);
+
+      const uint16_t gridCount = X_SIZE * Y_SIZE;
+      const uint16_t rightStart = gridCount;
+      const uint16_t topStart = rightStart + X_SIZE;
+      const uint16_t leftStart = topStart + X_SIZE;
+      const uint16_t bottomStart = leftStart + X_SIZE;
+
+      if (xy.x == X_SIZE && xy.y >= 0 && xy.y < Y_SIZE)
+      {
+        return static_cast<uint16_t>(rightStart + (Y_SIZE - 1 - xy.y));
+      }
+      if (xy.y == -1 && xy.x >= 0 && xy.x < X_SIZE)
+      {
+        return static_cast<uint16_t>(topStart + (X_SIZE - 1 - xy.x));
+      }
+      if (xy.x == -1 && xy.y >= 0 && xy.y < Y_SIZE)
+      {
+        return static_cast<uint16_t>(leftStart + xy.y);
+      }
+      if (xy.y == Y_SIZE && xy.x >= 0 && xy.x < X_SIZE)
+      {
+        return static_cast<uint16_t>(bottomStart + xy.x);
+      }
+
+      return UINT16_MAX;
     }
 
     uint16_t ID2Index(uint16_t ledID)
     {
-      if (ledID >= (X_SIZE * Y_SIZE))
+      if (ledID >= count)
       {
         return UINT16_MAX;
       }
@@ -177,11 +199,34 @@ namespace Device
 
     Point Index2XY(uint16_t index)
     {
-      if (index >= (X_SIZE * Y_SIZE))
+      if (index >= count)
       {
         return Point::Invalid();
       }
-      return Point(static_cast<int16_t>(index % X_SIZE), static_cast<int16_t>(index / X_SIZE));
+      if (index < (X_SIZE * Y_SIZE))
+      {
+        return Point(static_cast<int16_t>(index % X_SIZE), static_cast<int16_t>(index / X_SIZE));
+      }
+
+      const uint16_t gridCount = X_SIZE * Y_SIZE;
+      const uint16_t rightStart = gridCount;
+      const uint16_t topStart = rightStart + X_SIZE;
+      const uint16_t leftStart = topStart + X_SIZE;
+      const uint16_t bottomStart = leftStart + X_SIZE;
+
+      if (index < topStart)
+      {
+        return Point(X_SIZE, static_cast<int16_t>(Y_SIZE - 1 - (index - rightStart)));
+      }
+      if (index < leftStart)
+      {
+        return Point(static_cast<int16_t>(X_SIZE - 1 - (index - topStart)), -1);
+      }
+      if (index < bottomStart)
+      {
+        return Point(-1, static_cast<int16_t>(index - leftStart));
+      }
+      return Point(static_cast<int16_t>(index - bottomStart), Y_SIZE);
     }
   }
 
