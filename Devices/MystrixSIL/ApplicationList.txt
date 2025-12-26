@@ -27,12 +27,12 @@ REDACTED
 Performance
 Note
 Sequencer
-# CustomControlMap
+CustomControlMap
 Lighting
 Dice
-# Strum
+Strum
 Reversi
-# Companion
+Companion
 # PolyPlayground
 # [System]Python
 
