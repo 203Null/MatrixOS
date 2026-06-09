@@ -6,18 +6,24 @@ void Influence::Setup(const vector<string>& args) {
   MLOGI(TAG, "Influence started");
   srand((unsigned int)MatrixOS::SYS::Micros());
   ResetSimulation();
-  Render(false);
+  Render();
+  renderPending = false;
 }
 
 void Influence::Loop() {
   ProcessInputEvents();
 
-  if (!operationTimer.Tick(OPERATION_INTERVAL_MS))
+  if (!frameTimer.Tick(FRAME_INTERVAL_MS))
   {
     return;
   }
 
   StepSimulation();
+  if (renderPending)
+  {
+    Render();
+    renderPending = false;
+  }
 }
 
 void Influence::End() {
@@ -63,7 +69,7 @@ void Influence::StepSimulation() {
     }
   }
 
-  Render(true);
+  renderPending = true;
 
   if (currentActionsRemaining > 0)
   {
@@ -109,9 +115,25 @@ bool Influence::BeginNextTurn() {
 }
 
 void Influence::TrySpawnAtRoundStart() {
-  if (forceCount < 4 && (rand() % 2) == 0)
+  if (forceCount >= 4)
   {
-    SpawnForce(RandomSpawnOrigin(), true);
+    return;
+  }
+
+  uint8_t originalForceCount = forceCount;
+  array<uint8_t, MAX_FORCES> originalQueue = forceQueue;
+  for (uint8_t i = 0; i < originalForceCount && forceCount < MAX_FORCES; i++)
+  {
+    uint8_t forceId = originalQueue[i];
+    if (forceId >= MAX_FORCES || !forces[forceId].active || CountOwnedCells(forceId) == 0)
+    {
+      continue;
+    }
+
+    if ((rand() % 2) == 0)
+    {
+      SplitForce(forceId);
+    }
   }
 }
 
@@ -147,7 +169,7 @@ void Influence::BoostCell(uint8_t cellIndex) {
   }
 
   cell.weight++;
-  Render(true);
+  renderPending = true;
 }
 
 bool Influence::SpawnForce(uint8_t cellIndex, bool addToFront) {
@@ -166,8 +188,10 @@ bool Influence::SpawnForce(uint8_t cellIndex, bool addToFront) {
   uint8_t previousOwners[4] = {NO_FORCE, NO_FORCE, NO_FORCE, NO_FORCE};
   Point origin = CellPoint(cellIndex);
 
+  float hue = RandomForceHue();
   forces[forceId].active = true;
-  forces[forceId].color = RandomForceColor();
+  forces[forceId].hue = hue;
+  forces[forceId].color = RandomForceColor(hue);
 
   uint8_t ownerCount = 0;
   for (uint8_t y = 0; y < 2; y++)
@@ -219,6 +243,156 @@ bool Influence::SpawnForce(uint8_t cellIndex, bool addToFront) {
   }
 
   return true;
+}
+
+bool Influence::SplitForce(uint8_t sourceForceId) {
+  if (forceCount >= MAX_FORCES || sourceForceId >= MAX_FORCES || !forces[sourceForceId].active)
+  {
+    return false;
+  }
+
+  uint8_t targetCount = CountOwnedCells(sourceForceId) / 2;
+  if (targetCount == 0)
+  {
+    return false;
+  }
+
+  int16_t forceSlot = FindFreeForceSlot();
+  if (forceSlot < 0)
+  {
+    return false;
+  }
+
+  array<uint8_t, CELL_COUNT> selectedCells;
+  uint8_t selectedCount = 0;
+  if (!SelectSplitCells(sourceForceId, targetCount, &selectedCells, &selectedCount))
+  {
+    return false;
+  }
+
+  uint8_t newForceId = (uint8_t)forceSlot;
+  float hue = RandomForceHue();
+  forces[newForceId].active = true;
+  forces[newForceId].hue = hue;
+  forces[newForceId].color = RandomForceColor(hue);
+
+  for (uint8_t i = 0; i < selectedCount; i++)
+  {
+    board[selectedCells[i]].owner = newForceId;
+  }
+
+  forceQueue[forceCount] = newForceId;
+  forceCount++;
+
+  RemoveForceIfEmpty(sourceForceId);
+  return true;
+}
+
+bool Influence::SelectSplitCells(uint8_t sourceForceId, uint8_t targetCount, array<uint8_t, CELL_COUNT>* selectedCells,
+                                 uint8_t* selectedCount) const {
+  static constexpr int8_t neighborOffsets[4][2] = {{0, -1}, {1, 0}, {0, 1}, {-1, 0}};
+
+  if (selectedCells == nullptr || selectedCount == nullptr || targetCount == 0)
+  {
+    return false;
+  }
+
+  for (uint8_t attempt = 0; attempt < 32; attempt++)
+  {
+    uint8_t ownedCount = 0;
+    for (const Cell& cell : board)
+    {
+      if (cell.owner == sourceForceId && cell.weight > 0)
+      {
+        ownedCount++;
+      }
+    }
+
+    if (ownedCount < targetCount)
+    {
+      return false;
+    }
+
+    uint8_t selectedOwned = rand() % ownedCount;
+    uint8_t startCell = 0;
+    for (uint8_t cellIndex = 0; cellIndex < CELL_COUNT; cellIndex++)
+    {
+      const Cell& cell = board[cellIndex];
+      if (cell.owner != sourceForceId || cell.weight == 0)
+      {
+        continue;
+      }
+
+      if (selectedOwned == 0)
+      {
+        startCell = cellIndex;
+        break;
+      }
+      selectedOwned--;
+    }
+
+    (*selectedCells)[0] = startCell;
+    *selectedCount = 1;
+
+    while (*selectedCount < targetCount)
+    {
+      array<uint8_t, CELL_COUNT> candidates;
+      uint8_t candidateCount = 0;
+
+      for (uint8_t selectedIndex = 0; selectedIndex < *selectedCount; selectedIndex++)
+      {
+        Point point = CellPoint((*selectedCells)[selectedIndex]);
+        for (uint8_t offsetIndex = 0; offsetIndex < 4; offsetIndex++)
+        {
+          int16_t x = point.x + neighborOffsets[offsetIndex][0];
+          int16_t y = point.y + neighborOffsets[offsetIndex][1];
+          if (!IsValidCell(x, y))
+          {
+            continue;
+          }
+
+          uint8_t candidate = CellIndex(x, y);
+          const Cell& cell = board[candidate];
+          if (cell.owner != sourceForceId || cell.weight == 0 || IsCellSelected(candidate, *selectedCells, *selectedCount) ||
+              IsCellSelected(candidate, candidates, candidateCount))
+          {
+            continue;
+          }
+
+          candidates[candidateCount] = candidate;
+          candidateCount++;
+        }
+      }
+
+      if (candidateCount == 0)
+      {
+        break;
+      }
+
+      (*selectedCells)[*selectedCount] = candidates[rand() % candidateCount];
+      (*selectedCount)++;
+    }
+
+    if (*selectedCount == targetCount)
+    {
+      return true;
+    }
+  }
+
+  *selectedCount = 0;
+  return false;
+}
+
+bool Influence::IsCellSelected(uint8_t cellIndex, const array<uint8_t, CELL_COUNT>& selectedCells, uint8_t selectedCount) const {
+  for (uint8_t i = 0; i < selectedCount; i++)
+  {
+    if (selectedCells[i] == cellIndex)
+    {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 int16_t Influence::FindFreeForceSlot() const {
@@ -426,15 +600,6 @@ void Influence::ExecuteOperation(uint8_t forceId, const Operation& operation) {
 }
 
 void Influence::Render() {
-  Render(true);
-}
-
-void Influence::Render(bool fade) {
-  if (fade)
-  {
-    MatrixOS::LED::Fade(FADE_DURATION_MS);
-  }
-
   for (uint8_t cellIndex = 0; cellIndex < CELL_COUNT; cellIndex++)
   {
     MatrixOS::LED::SetColor(CellPoint(cellIndex), GetCellColor(board[cellIndex]), 0);
@@ -486,10 +651,68 @@ Color Influence::GetDominantForceColor() const {
   return forces[bestForce].color;
 }
 
-Color Influence::RandomForceColor() const {
-  float hue = RandomUnit();
-  float saturation = 0.55f + RandomUnit() * 0.20f;
+Color Influence::RandomForceColor(float hue) const {
+  float saturation = MIN_SATURATION + RandomUnit() * (MAX_SATURATION - MIN_SATURATION);
   return Color::HsvToRgb(hue, saturation, 1.0f);
+}
+
+float Influence::RandomForceHue() const {
+  for (uint8_t i = 0; i < 64; i++)
+  {
+    float hue = RandomUnit();
+    if (IsHueAvailable(hue))
+    {
+      return hue;
+    }
+  }
+
+  float bestHue = 0.0f;
+  float bestDistance = -1.0f;
+
+  for (uint16_t step = 0; step < 360; step++)
+  {
+    float hue = step / 360.0f;
+    float nearestDistance = 1.0f;
+
+    for (const Force& force : forces)
+    {
+      if (!force.active)
+      {
+        continue;
+      }
+
+      float distance = HueDistance(hue, force.hue);
+      if (distance < nearestDistance)
+      {
+        nearestDistance = distance;
+      }
+    }
+
+    if (nearestDistance > bestDistance)
+    {
+      bestDistance = nearestDistance;
+      bestHue = hue;
+    }
+  }
+
+  return bestHue;
+}
+
+bool Influence::IsHueAvailable(float hue) const {
+  for (const Force& force : forces)
+  {
+    if (force.active && HueDistance(hue, force.hue) < MIN_HUE_DISTANCE)
+    {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+float Influence::HueDistance(float a, float b) const {
+  float distance = a > b ? a - b : b - a;
+  return distance > 0.5f ? 1.0f - distance : distance;
 }
 
 uint8_t Influence::RandomSpawnOrigin() const {
