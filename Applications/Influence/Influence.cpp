@@ -13,14 +13,24 @@ void Influence::Setup(const vector<string>& args) {
 void Influence::Loop() {
   ProcessInputEvents();
 
-  if (!frameTimer.Tick(FRAME_INTERVAL_MS))
+  if (!operationTimer.Tick(OPERATION_INTERVAL_MS))
   {
+    if (renderPending)
+    {
+      Render();
+      renderPending = false;
+    }
     return;
   }
 
   StepSimulation();
   if (renderPending)
   {
+    if (fadePending)
+    {
+      MatrixOS::LED::Fade(OPERATION_FADE_MS);
+      fadePending = false;
+    }
     Render();
     renderPending = false;
   }
@@ -70,6 +80,7 @@ void Influence::StepSimulation() {
   }
 
   renderPending = true;
+  fadePending = true;
 
   if (currentActionsRemaining > 0)
   {

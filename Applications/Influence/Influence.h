@@ -28,7 +28,8 @@ private:
   static constexpr float MIN_HUE_DISTANCE = 45.0f / 360.0f;
   static constexpr float MIN_SATURATION = 0.42f;
   static constexpr float MAX_SATURATION = 0.56f;
-  static constexpr uint16_t FRAME_INTERVAL_MS = 17;
+  static constexpr uint16_t OPERATION_INTERVAL_MS = 120;
+  static constexpr uint16_t OPERATION_FADE_MS = OPERATION_INTERVAL_MS;
 
   enum class OperationType : uint8_t {
     Attack,
@@ -61,7 +62,8 @@ private:
   uint8_t currentActionsRemaining = 0;
   bool turnActive = false;
   bool renderPending = false;
-  Timer frameTimer;
+  bool fadePending = false;
+  Timer operationTimer;
 
   void ResetSimulation();
   void StepSimulation();
