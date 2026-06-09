@@ -19,8 +19,10 @@ public:
 
 private:
   static constexpr const char* TAG = "Influence";
-  static constexpr uint8_t BOARD_WIDTH = 8;
-  static constexpr uint8_t BOARD_HEIGHT = 8;
+  static constexpr int16_t BOARD_ORIGIN_X = -1;
+  static constexpr int16_t BOARD_ORIGIN_Y = -1;
+  static constexpr uint8_t BOARD_WIDTH = 10;
+  static constexpr uint8_t BOARD_HEIGHT = 10;
   static constexpr uint8_t CELL_COUNT = BOARD_WIDTH * BOARD_HEIGHT;
   static constexpr uint8_t MAX_FORCES = 6;
   static constexpr uint8_t NO_FORCE = 255;
@@ -88,7 +90,6 @@ private:
 
   void Render();
   Color GetCellColor(const Cell& cell) const;
-  Color GetDominantForceColor() const;
   Color RandomForceColor(float hue) const;
   float RandomForceHue() const;
   bool IsHueAvailable(float hue) const;

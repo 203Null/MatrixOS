@@ -616,7 +616,6 @@ void Influence::Render() {
     MatrixOS::LED::SetColor(CellPoint(cellIndex), GetCellColor(board[cellIndex]), 0);
   }
 
-  MatrixOS::LED::FillPartition("Underglow", GetDominantForceColor(), 0);
   MatrixOS::LED::Update(0);
 }
 
@@ -628,38 +627,6 @@ Color Influence::GetCellColor(const Cell& cell) const {
 
   uint8_t brightness = cell.weight * 255 / MAX_WEIGHT;
   return forces[cell.owner].color.Scale(brightness);
-}
-
-Color Influence::GetDominantForceColor() const {
-  uint16_t bestWeight = 0;
-  uint8_t bestForce = NO_FORCE;
-
-  for (uint8_t queueIndex = 0; queueIndex < forceCount; queueIndex++)
-  {
-    uint8_t forceId = forceQueue[queueIndex];
-    uint16_t forceWeight = 0;
-
-    for (const Cell& cell : board)
-    {
-      if (cell.owner == forceId)
-      {
-        forceWeight += cell.weight;
-      }
-    }
-
-    if (forceWeight > bestWeight)
-    {
-      bestWeight = forceWeight;
-      bestForce = forceId;
-    }
-  }
-
-  if (bestForce == NO_FORCE)
-  {
-    return Color::Black;
-  }
-
-  return forces[bestForce].color;
 }
 
 Color Influence::RandomForceColor(float hue) const {
@@ -727,7 +694,9 @@ float Influence::HueDistance(float a, float b) const {
 }
 
 uint8_t Influence::RandomSpawnOrigin() const {
-  return CellIndex(rand() % (BOARD_WIDTH - 1), rand() % (BOARD_HEIGHT - 1));
+  uint8_t x = rand() % (BOARD_WIDTH - 1);
+  uint8_t y = rand() % (BOARD_HEIGHT - 1);
+  return y * BOARD_WIDTH + x;
 }
 
 uint8_t Influence::RandomEmptySpawnOrigin() const {
@@ -736,7 +705,8 @@ uint8_t Influence::RandomEmptySpawnOrigin() const {
   {
     for (uint8_t x = 0; x < BOARD_WIDTH - 1; x++)
     {
-      if (CanSpawnAt(CellIndex(x, y), true))
+      uint8_t cellIndex = y * BOARD_WIDTH + x;
+      if (CanSpawnAt(cellIndex, true))
       {
         emptyCount++;
       }
@@ -753,7 +723,7 @@ uint8_t Influence::RandomEmptySpawnOrigin() const {
   {
     for (uint8_t x = 0; x < BOARD_WIDTH - 1; x++)
     {
-      uint8_t cellIndex = CellIndex(x, y);
+      uint8_t cellIndex = y * BOARD_WIDTH + x;
       if (!CanSpawnAt(cellIndex, true))
       {
         continue;
@@ -807,13 +777,14 @@ float Influence::RandomUnit() const {
 }
 
 bool Influence::IsValidCell(int16_t x, int16_t y) const {
-  return x >= 0 && y >= 0 && x < BOARD_WIDTH && y < BOARD_HEIGHT;
+  return x >= BOARD_ORIGIN_X && y >= BOARD_ORIGIN_Y &&
+         x < BOARD_ORIGIN_X + BOARD_WIDTH && y < BOARD_ORIGIN_Y + BOARD_HEIGHT;
 }
 
 uint8_t Influence::CellIndex(int16_t x, int16_t y) const {
-  return y * BOARD_WIDTH + x;
+  return (y - BOARD_ORIGIN_Y) * BOARD_WIDTH + (x - BOARD_ORIGIN_X);
 }
 
 Point Influence::CellPoint(uint8_t cellIndex) const {
-  return Point(cellIndex % BOARD_WIDTH, cellIndex / BOARD_WIDTH);
+  return Point((cellIndex % BOARD_WIDTH) + BOARD_ORIGIN_X, (cellIndex / BOARD_WIDTH) + BOARD_ORIGIN_Y);
 }
